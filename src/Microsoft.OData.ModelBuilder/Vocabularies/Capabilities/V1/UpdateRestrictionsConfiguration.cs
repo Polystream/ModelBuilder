@@ -21,6 +21,7 @@ namespace Microsoft.OData.ModelBuilder.Capabilities.V1
         private bool? _deltaUpdateSupported;
         private bool? _filterSegmentSupported;
         private bool? _typecastSegmentSupported;
+        private readonly HashSet<EdmPropertyPathExpression> _nonUpdatableProperties = new HashSet<EdmPropertyPathExpression>();
         private readonly HashSet<EdmNavigationPropertyPathExpression> _nonUpdatableNavigationProperties = new HashSet<EdmNavigationPropertyPathExpression>();
         private int? _maxLevels;
         private readonly HashSet<PermissionTypeConfiguration> _permissions = new HashSet<PermissionTypeConfiguration>();
@@ -85,6 +86,17 @@ namespace Microsoft.OData.ModelBuilder.Capabilities.V1
         public UpdateRestrictionsConfiguration IsTypecastSegmentSupported(bool typecastSegmentSupported)
         {
             _typecastSegmentSupported = typecastSegmentSupported;
+            return this;
+        }
+
+        /// <summary>
+        /// These structural properties cannot be specified on update
+        /// </summary>
+        /// <param name="nonUpdatableProperties">The value(s) to set</param>
+        /// <returns><see cref="UpdateRestrictionsConfiguration"/></returns>
+        public UpdateRestrictionsConfiguration HasNonUpdatableProperties(params EdmPropertyPathExpression[] nonUpdatableProperties)
+        {
+            _nonUpdatableProperties.UnionWith(nonUpdatableProperties);
             return this;
         }
 
@@ -252,6 +264,15 @@ namespace Microsoft.OData.ModelBuilder.Capabilities.V1
             if (_typecastSegmentSupported.HasValue)
             {
                 properties.Add(new EdmPropertyConstructor("TypecastSegmentSupported", new EdmBooleanConstant(_typecastSegmentSupported.Value)));
+            }
+
+            if (_nonUpdatableProperties.Any())
+            {
+                var collection = _nonUpdatableProperties.Where(item => item != null);
+                if (collection.Any())
+                {
+                    properties.Add(new EdmPropertyConstructor("NonUpdatableProperties", new EdmCollectionExpression(collection)));
+                }
             }
 
             if (_nonUpdatableNavigationProperties.Any())
